@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Shared medical records – MedVault</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/share.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="/"><span class="logo-mark">✚</span> MedVault</a>
+    <span class="muted small" style="margin-left:auto">Read-only view shared by the patient</span>
+  </header>
+  <main id="share"><p class="muted">Loading shared records…</p></main>
+
+  <dialog id="dlg-view" class="wide">
+    <div class="dlg-head"><h2 id="view-title"></h2><button class="x" id="view-close" aria-label="Close">×</button></div>
+    <div class="viewer">
+      <div class="viewer-main">
+        <div class="pager">
+          <button class="btn small" id="view-prev" aria-label="Previous page">‹ Prev</button>
+          <span id="view-page" aria-live="polite"></span>
+          <button class="btn small" id="view-next" aria-label="Next page">Next ›</button>
+        </div>
+        <div class="viewer-frame" id="view-frame"></div>
+      </div>
+      <aside class="viewer-side">
+        <dl id="view-meta"></dl>
+        <div class="actions"><a class="btn" id="view-download">⬇ Download this page</a></div>
+      </aside>
+    </div>
+  </dialog>
+</body>
+</html>

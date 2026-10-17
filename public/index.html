@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MedVault – Your medical records, always with you</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="#/records"><span class="logo-mark">✚</span> MedVault</a>
+    <nav class="nav" id="nav" hidden>
+      <a href="#/records" data-view="records">My records</a>
+      <a href="#/health" data-view="health">Health summary</a>
+      <a href="#/sharing" data-view="sharing">Share with a doctor</a>
+      <a href="#/account" data-view="account">Account</a>
+    </nav>
+    <div class="who" id="who" hidden>
+      <span class="muted small" id="who-name"></span>
+      <button class="btn small" id="logout">Sign out</button>
+    </div>
+  </header>
+
+  <main id="app"><p class="muted">Loading…</p></main>
+
+  <!-- ===== Landing (signed out) ===== -->
+  <template id="tpl-landing">
+    <section class="hero">
+      <div>
+        <h1>Your medical records, on your phone instead of in a paper file.</h1>
+        <p class="lead">MedVault keeps digital copies of your prescriptions, lab reports, scans and discharge
+          summaries in one secure place. Open them at any clinic, or send a doctor a link that stops working when you choose.</p>
+        <div class="problem">
+          <strong>The problem: why can't patients get digital copies of their records?</strong>
+          Records sit in each hospital's own system, or on paper. Patients end up carrying folders between
+          appointments, re-taking tests when reports go missing, and arriving at emergencies with no history.
+          MedVault gives the patient their own copy.
+        </div>
+        <div class="features">
+          <div class="feature"><div class="ico">📄</div><div><b>Upload once, keep forever</b><span>Photos or PDFs of any report, organised by date and type.</span></div></div>
+          <div class="feature"><div class="ico">🔒</div><div><b>Encrypted storage</b><span>Every file is encrypted with AES-256 before it is saved.</span></div></div>
+          <div class="feature"><div class="ico">🔗</div><div><b>Expiring doctor links</b><span>Share chosen records by link or QR code. You set when the link stops working.</span></div></div>
+          <div class="feature"><div class="ico">🩺</div><div><b>Emergency summary</b><span>Blood group, allergies and medicines, ready to show.</span></div></div>
+          <div class="feature"><div class="ico">👁️</div><div><b>Access history</b><span>See every time a doctor opened or downloaded a file.</span></div></div>
+          <div class="feature"><div class="ico">🗑️</div><div><b>You stay in control</b><span>Revoke links or delete your account and files at any time.</span></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="tabs" role="tablist">
+          <button type="button" class="active" data-tab="login">Sign in</button>
+          <button type="button" data-tab="register">Create account</button>
+        </div>
+        <form id="auth-form" novalidate>
+          <div class="form-error" id="auth-error" hidden></div>
+          <div class="field" data-only="register" hidden>
+            <label for="auth-name">Full name</label>
+            <input id="auth-name" name="name" autocomplete="name">
+          </div>
+          <div class="field">
+            <label for="auth-email">Email</label>
+            <input id="auth-email" name="email" type="email" autocomplete="email" required>
+          </div>
+          <div class="field">
+            <label for="auth-password">Password</label>
+            <input id="auth-password" name="password" type="password" autocomplete="current-password" required>
+            <div class="muted small" data-only="register" hidden>At least 8 characters.</div>
+          </div>
+          <div class="field" data-only="register-code" hidden>
+            <label for="auth-code">Sign-up code</label>
+            <input id="auth-code" name="signupCode" autocomplete="off">
+            <div class="muted small">This MedVault is invite-only. Ask whoever runs it for the code.</div>
+          </div>
+          <button class="btn primary" style="width:100%" type="submit" id="auth-submit">Sign in</button>
+        </form>
+      </div>
+    </section>
+  </template>
+
+  <!-- ===== Records ===== -->
+  <template id="tpl-records">
+    <div class="page-head">
+      <div>
+        <h1>My records</h1>
+        <div class="muted">All your medical documents, newest first.</div>
+      </div>
+      <button class="btn primary" id="open-upload">＋ Add record</button>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="toolbar">
+      <input type="search" id="search" placeholder="Search by title, doctor, hospital or notes…" aria-label="Search records">
+      <select id="filter-category" aria-label="Filter by type"><option value="">All types</option></select>
+    </div>
+    <div id="record-list"></div>
+  </template>
+
+  <!-- ===== Health summary ===== -->
+  <template id="tpl-health">
+    <div class="page-head">
+      <div>
+        <h1>Health summary</h1>
+        <div class="muted">The key facts a doctor needs in an emergency. You can include this in any share link.</div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <form class="card" id="profile-form">
+        <div class="form-error" id="profile-error" hidden></div>
+        <div class="field"><label for="p-name">Full name</label><input id="p-name" name="name" required></div>
+        <div class="row">
+          <div class="field"><label for="p-dob">Date of birth</label><input id="p-dob" name="dob" type="date"></div>
+          <div class="field"><label for="p-blood">Blood group</label>
+            <select id="p-blood" name="bloodGroup">
+              <option value="">Unknown</option>
+              <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+              <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+            </select>
+          </div>
+        </div>
+        <div class="field"><label for="p-allergies">Allergies</label><textarea id="p-allergies" name="allergies" placeholder="e.g. Penicillin, peanuts"></textarea></div>
+        <div class="field"><label for="p-conditions">Ongoing conditions</label><textarea id="p-conditions" name="conditions" placeholder="e.g. Type 2 diabetes, asthma"></textarea></div>
+        <div class="field"><label for="p-meds">Current medications</label><textarea id="p-meds" name="medications" placeholder="e.g. Metformin 500mg twice daily"></textarea></div>
+        <div class="field"><label for="p-contact">Emergency contact</label><input id="p-contact" name="emergencyContact" placeholder="Name, relation, phone"></div>
+        <button class="btn primary" type="submit">Save summary</button>
+      </form>
+      <div>
+        <div class="card ecard" id="ecard-preview"></div>
+        <p class="muted small" style="margin-top:12px">This is how your summary looks to a doctor who opens a share link that includes it.</p>
+      </div>
+    </div>
+  </template>
+
+  <!-- ===== Sharing ===== -->
+  <template id="tpl-sharing">
+    <div class="page-head">
+      <div>
+        <h1>Share with a doctor</h1>
+        <div class="muted">Create a link or QR code for the records you choose. The doctor doesn't need an account.</div>
+      </div>
+      <button class="btn primary" id="open-share">＋ New share link</button>
+    </div>
+    <div class="card" style="margin-bottom:24px">
+      <h2 style="font-size:18px">Share links</h2>
+      <div class="table-wrap" id="share-list"></div>
+    </div>
+    <div class="card">
+      <h2 style="font-size:18px">Access history</h2>
+      <p class="muted small">Every time someone opens one of your share links or a record in it.</p>
+      <div class="table-wrap" id="access-log"></div>
+    </div>
+  </template>
+
+  <!-- ===== Account ===== -->
+  <template id="tpl-account">
+    <div class="page-head"><h1>Account</h1></div>
+    <div class="card" style="max-width:640px">
+      <h2 style="font-size:18px">Your data</h2>
+      <p class="muted">Signed in as <b id="acct-email"></b>. Your files are encrypted on the server, and only
+        you, plus anyone holding a live share link you created, can open them.</p>
+      <hr style="border:0;border-top:1px solid var(--border);margin:20px 0">
+      <h2 style="font-size:18px">Download a copy of everything</h2>
+      <p class="muted">One ZIP file with every page of every record, in a folder per record, plus a page listing your
+        records and health summary. It opens on any computer without MedVault, so you can keep your own backup.</p>
+      <a class="btn primary" href="/api/export" download id="export-all">⬇ Download all my records</a>
+      <hr style="border:0;border-top:1px solid var(--border);margin:20px 0">
+      <h2 style="font-size:18px">Change password</h2>
+      <form id="password-form" novalidate>
+        <div class="form-error" id="password-error" hidden></div>
+        <div class="field"><label for="pw-current">Current password</label><input id="pw-current" name="currentPassword" type="password" autocomplete="current-password" required></div>
+        <div class="row">
+          <div class="field"><label for="pw-new">New password</label><input id="pw-new" name="newPassword" type="password" autocomplete="new-password" minlength="8" required></div>
+          <div class="field"><label for="pw-confirm">Confirm new password</label><input id="pw-confirm" name="confirmPassword" type="password" autocomplete="new-password" required></div>
+        </div>
+        <p class="muted small">Changing it signs out every other device that is signed in to your account.</p>
+        <button class="btn" type="submit">Change password</button>
+      </form>
+      <hr style="border:0;border-top:1px solid var(--border);margin:20px 0">
+      <h2 style="font-size:18px;color:var(--danger)">Delete account</h2>
+      <p class="muted">Permanently deletes your account, every uploaded record and every share link. This can't be undone.</p>
+      <button class="btn danger" id="delete-account">Delete my account and records</button>
+    </div>
+  </template>
+
+  <!-- ===== Upload / edit dialog ===== -->
+  <dialog id="dlg-record">
+    <form method="dialog" id="record-form" novalidate>
+      <div class="dlg-head"><h2 id="record-dlg-title">Add a record</h2><button class="x" value="cancel" aria-label="Close">×</button></div>
+      <div class="dlg-body">
+        <div class="form-error" id="record-error" hidden></div>
+        <div id="capture">
+          <div class="capture-row">
+            <label class="dropzone" id="dropzone">
+              <input type="file" id="record-file" multiple accept="application/pdf,image/png,image/jpeg,image/webp,image/gif">
+              📎 Drop PDFs or photos here, or <u>browse</u><br><span class="muted small">Each file becomes one page · PDF, JPG, PNG, WEBP or GIF, up to 20 MB</span>
+            </label>
+            <label class="btn camera-btn" for="record-camera">📷 Take photo
+              <input type="file" id="record-camera" accept="image/*" capture="environment" hidden>
+            </label>
+          </div>
+          <div class="form-error" id="pending-error" hidden></div>
+          <ol class="pending-list" id="pending-list" aria-label="Pages to upload"></ol>
+        </div>
+        <div id="record-fields">
+        <div class="field"><label for="r-title">Title</label><input id="r-title" name="title" placeholder="e.g. Complete blood count" required></div>
+        <div class="row">
+          <div class="field"><label for="r-category">Type</label><select id="r-category" name="category"></select></div>
+          <div class="field"><label for="r-date">Date on the record</label><input id="r-date" name="recordDate" type="date" required></div>
+        </div>
+        <div class="field"><label for="r-provider">Doctor / hospital / lab</label><input id="r-provider" name="provider" placeholder="e.g. Dr. Mehta, City Hospital"></div>
+        <div class="field"><label for="r-notes">Notes</label><textarea id="r-notes" name="notes" placeholder="Anything you want to remember about this record"></textarea></div>
+        </div>
+      </div>
+      <div class="dlg-foot">
+        <button class="btn" value="cancel" formnovalidate>Cancel</button>
+        <button class="btn primary" id="record-save" value="default">Save record</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ===== Viewer dialog ===== -->
+  <dialog id="dlg-view" class="wide">
+    <div class="dlg-head"><h2 id="view-title"></h2><button class="x" data-close aria-label="Close">×</button></div>
+    <div class="viewer">
+      <div class="viewer-main">
+        <div class="pager">
+          <button class="btn small" id="view-prev" aria-label="Previous page">‹ Prev</button>
+          <span id="view-page" aria-live="polite"></span>
+          <button class="btn small" id="view-next" aria-label="Next page">Next ›</button>
+        </div>
+        <div class="viewer-frame" id="view-frame"></div>
+      </div>
+      <aside class="viewer-side">
+        <dl id="view-meta"></dl>
+        <div class="actions">
+          <a class="btn" id="view-download">⬇ Download this page</a>
+          <button class="btn" id="view-add-page">＋ Add pages</button>
+          <button class="btn" id="view-edit">✎ Edit details</button>
+          <button class="btn danger" id="view-delete-page">Delete this page</button>
+          <button class="btn danger" id="view-delete">Delete record</button>
+        </div>
+      </aside>
+    </div>
+  </dialog>
+
+  <!-- ===== Share dialog ===== -->
+  <dialog id="dlg-share">
+    <form method="dialog" id="share-form" novalidate>
+      <div class="dlg-head"><h2>New share link</h2><button class="x" value="cancel" aria-label="Close">×</button></div>
+      <div class="dlg-body" id="share-step-1">
+        <div class="form-error" id="share-error" hidden></div>
+        <div class="row">
+          <div class="field"><label for="s-label">Who is this for?</label><input id="s-label" name="label" placeholder="e.g. Dr. Rao – cardiology visit" required></div>
+          <div class="field"><label for="s-hours">Link works for</label>
+            <select id="s-hours" name="hours">
+              <option value="1">1 hour</option>
+              <option value="24" selected>24 hours</option>
+              <option value="72">3 days</option>
+              <option value="168">7 days</option>
+              <option value="720">30 days</option>
+            </select>
+          </div>
+        </div>
+        <label class="check field"><input type="checkbox" id="s-profile" checked> Include my health summary (blood group, allergies, medicines)</label>
+        <div class="field">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <label style="margin:0">Records to share</label>
+            <button type="button" class="btn small" id="s-toggle-all">Select all</button>
+          </div>
+          <div class="pick-list" id="s-records" style="margin-top:6px"></div>
+        </div>
+      </div>
+      <div class="dlg-body" id="share-step-2" hidden>
+        <p><b>Your link is ready.</b> Copy it now. For your security, MedVault only shows the full link once.</p>
+        <div class="link-box"><input id="s-link" readonly aria-label="Share link"><button type="button" class="btn" id="s-copy">Copy</button></div>
+        <div class="qr" id="s-qr"></div>
+        <p class="muted small" style="text-align:center">A doctor can scan this at the clinic. It expires <span id="s-expires"></span>.</p>
+      </div>
+      <div class="dlg-foot">
+        <button class="btn" value="cancel" formnovalidate id="share-cancel">Cancel</button>
+        <button class="btn primary" id="share-create" value="default">Create link</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

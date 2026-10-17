@@ -1,0 +1,14 @@
+{
+  "name": "medvault",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Patient-owned digital vault for medical records, with expiring share links for doctors.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  }
+}

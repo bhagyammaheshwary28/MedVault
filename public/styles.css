@@ -199,6 +199,14 @@ textarea { resize: vertical; min-height: 70px; }
   color: var(--muted);
   font-size: 14px;
 }
+.analytics-note.asking {
+  margin: 0 0 20px;
+  padding: 14px 18px;
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--text);
+  font-size: 15px;
+}
 .analytics-note[hidden] { display: none; }
 .analytics-note #analytics-text { flex: 1 1 280px; }
 .analytics-actions { display: flex; gap: 8px; }

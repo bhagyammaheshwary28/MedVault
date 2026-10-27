@@ -181,6 +181,10 @@ function renderAnalyticsNote() {
     renderAnalyticsNote();
   };
   note.hidden = false;
+  // Unanswered, the question leads the page so visitors see it before signing in; once answered it moves to the end.
+  note.classList.toggle('asking', !choice);
+  if (choice) app.append(note);
+  else app.prepend(note);
   if (!choice) {
     $('#analytics-text').textContent =
       'Can we use Microsoft Clarity to see how visitors use this page? It runs only on this sign-in page, ' +

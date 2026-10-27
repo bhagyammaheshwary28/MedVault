@@ -65,6 +65,7 @@ Then, in the dashboard, open the service's **Variables** tab and add:
 | `SECURE_COOKIES` | `1` | Sign-in cookies only travel over HTTPS, and browsers are told to always use HTTPS |
 | `TRUST_PROXY` | `1` | Railway's proxy sits in front of the app; this makes the sign-in attempt limit count each visitor separately |
 | `MEDVAULT_SIGNUP_CODE` | a code you choose, e.g. `try-medvault-24` | Only people you give the code to can create accounts. Leave it unset to let anyone sign up |
+| `CLARITY_PROJECT_ID` | your Microsoft Clarity project ID (optional) | Turns on usage analytics for the sign-in page. See "Usage analytics" below. Leave it unset for none |
 
 `MEDVAULT_DATA_DIR` is already set to `/data` by the Dockerfile, and Railway sets `PORT` itself.
 
@@ -83,6 +84,22 @@ In the service's **Settings → Networking**, choose **Generate Domain**. Railwa
 sign-up code, and try everything.
 
 Share links and QR codes use this address automatically, so doctors can open them from anywhere.
+
+## Usage analytics (Microsoft Clarity, optional)
+
+MedVault can send [Microsoft Clarity](https://clarity.microsoft.com) recordings and heatmaps of the **signed-out
+landing page only**. Visitors see a note asking first, and nothing loads until they choose **Allow**. Signing in
+reloads the page without Clarity, so screens inside a vault are never recorded. The sign-in form is masked as well.
+
+1. At [clarity.microsoft.com](https://clarity.microsoft.com), create a project for your site's address and choose
+   **Install manually**. Copy the project ID from the snippet: it's the code after `"script",` (letters and digits).
+   You don't paste the snippet anywhere.
+2. In Clarity, open **Settings → Masking** and choose **Strict**.
+3. In Railway, add the variable `CLARITY_PROJECT_ID` with that ID. Railway redeploys on its own.
+4. Open your site, choose **Allow** on the analytics note, and click around. Clarity's dashboard shows the site as
+   installed within about two hours.
+
+To turn analytics off, delete the variable. A visitor can change their own choice at any time from the same note.
 
 ## Updating after changes
 

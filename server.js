@@ -49,12 +49,15 @@ const STATIC_TYPES = {
   '.ico': 'image/x-icon',
 };
 
-const PAGE_CSP = [
+// Microsoft Clarity's tag loads from and reports to *.clarity.ms, plus a c.bing.com pixel; allowed only when configured.
+const CLARITY_HOSTS = ' https://*.clarity.ms https://c.bing.com';
+const pageCsp = (clarity) => [
   "default-src 'self'",
-  "script-src 'self' https://cdnjs.cloudflare.com",
+  "script-src 'self' https://cdnjs.cloudflare.com" + (clarity ? ' https://*.clarity.ms' : ''),
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   'font-src https://fonts.gstatic.com',
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob:" + (clarity ? CLARITY_HOSTS : ''),
+  "connect-src 'self'" + (clarity ? CLARITY_HOSTS : ''),
   "frame-src 'self'",
   "object-src 'none'",
   "base-uri 'none'",
@@ -320,7 +323,12 @@ export function createServer({
   trustProxy = false,
   signupCode = '',
   originSecret = '',
+  clarityProjectId = '',
 } = {}) {
+  // Clarity project IDs are short alphanumeric codes; anything else is a typo, so analytics stay off.
+  const clarityId = /^[a-z0-9]{1,32}$/i.test(clarityProjectId) ? clarityProjectId : null;
+  if (clarityProjectId && !clarityId) console.warn('Ignoring CLARITY_PROJECT_ID: expected a short alphanumeric code.');
+  const PAGE_CSP = pageCsp(!!clarityId);
   fs.mkdirSync(path.join(dataDir, 'files'), { recursive: true });
   const db = openDb(dataDir);
   const key = loadKey(dataDir);
@@ -527,7 +535,7 @@ export function createServer({
 
   route('GET', '/api/me', async (req, res) => {
     const user = currentUser(req);
-    json(res, 200, { user: user ? publicUser(user) : null, categories: CATEGORIES, signupCodeRequired: !!signupCode });
+    json(res, 200, { user: user ? publicUser(user) : null, categories: CATEGORIES, signupCodeRequired: !!signupCode, clarityProjectId: clarityId });
   });
 
   route('PUT', '/api/me', async (req, res) => {
@@ -843,6 +851,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     trustProxy: process.env.TRUST_PROXY === '1',
     signupCode: process.env.MEDVAULT_SIGNUP_CODE || '',
     originSecret: process.env.MEDVAULT_ORIGIN_SECRET || '',
+    clarityProjectId: process.env.CLARITY_PROJECT_ID || '',
   }).listen(port, () => {
     console.log(`MedVault running at http://localhost:${port} (data in ${dataDir})`);
   });

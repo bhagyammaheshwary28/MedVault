@@ -119,6 +119,11 @@ function renderLanding() {
       if (mode === 'register') body.name = form.name.value;
       if (mode === 'register' && state.signupCodeRequired) body.signupCode = form.signupCode.value;
       const { user } = await api(`/api/auth/${mode}`, { method: 'POST', body });
+      // Clarity must never record inside the vault, and a fresh page load is the only sure way to stop it.
+      if (clarityLoaded) {
+        location.hash = '#/records';
+        return location.reload();
+      }
       state.user = user;
       await loadRecords();
       location.hash = '#/records';
@@ -129,6 +134,68 @@ function renderLanding() {
       btn.disabled = false;
     }
   });
+  renderAnalyticsNote();
+}
+
+// ---------- usage analytics (Microsoft Clarity, signed-out landing page only) ----------
+
+const ANALYTICS_KEY = 'mv_analytics';
+let clarityLoaded = false;
+
+function analyticsChoice() {
+  try {
+    return localStorage.getItem(ANALYTICS_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setAnalyticsChoice(choice) {
+  try {
+    localStorage.setItem(ANALYTICS_KEY, choice);
+  } catch {
+    // private browsing: the choice lasts for this page only
+  }
+}
+
+// Clarity's standard loader, inlined here because the page CSP forbids inline scripts.
+function loadClarity() {
+  if (clarityLoaded || !state.clarityProjectId) return;
+  clarityLoaded = true;
+  window.clarity = window.clarity || function () { (window.clarity.q = window.clarity.q || []).push(arguments); };
+  window.clarity('consentv2', { ad_Storage: 'denied', analytics_Storage: 'granted' });
+  document.head.append(el('script', { async: true, src: `https://www.clarity.ms/tag/${encodeURIComponent(state.clarityProjectId)}` }));
+}
+
+function renderAnalyticsNote() {
+  const note = $('#analytics-note');
+  if (!note || !state.clarityProjectId) return;
+  const choice = analyticsChoice();
+  if (choice === 'granted') loadClarity();
+  const answer = (value) => () => {
+    setAnalyticsChoice(value);
+    if (value === 'denied' && clarityLoaded) {
+      window.clarity('consent', false); // erases Clarity's cookies
+      return location.reload();
+    }
+    renderAnalyticsNote();
+  };
+  note.hidden = false;
+  if (!choice) {
+    $('#analytics-text').textContent =
+      'Can we use Microsoft Clarity to see how visitors use this page? It runs only on this sign-in page, ' +
+      'never inside your vault, and hides everything you type.';
+    $('#analytics-actions').replaceChildren(
+      el('button', { type: 'button', class: 'btn small primary', onclick: answer('granted') }, 'Allow'),
+      el('button', { type: 'button', class: 'btn small', onclick: answer('denied') }, 'No thanks'),
+    );
+  } else {
+    const on = choice === 'granted';
+    $('#analytics-text').textContent = `Usage analytics (Microsoft Clarity) on this page: ${on ? 'on' : 'off'}.`;
+    $('#analytics-actions').replaceChildren(
+      el('button', { type: 'button', class: 'btn small', onclick: answer(on ? 'denied' : 'granted') }, on ? 'Turn off' : 'Turn on'),
+    );
+  }
 }
 
 // ---------- records ----------
@@ -727,6 +794,7 @@ function renderAccount() {
     const me = await api('/api/me');
     state.categories = me.categories;
     state.signupCodeRequired = me.signupCodeRequired;
+    state.clarityProjectId = me.clarityProjectId;
     state.user = me.user;
     if (state.user) await loadRecords();
   } catch {

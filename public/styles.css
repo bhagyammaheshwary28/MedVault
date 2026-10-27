@@ -186,6 +186,22 @@ textarea { resize: vertical; min-height: 70px; }
   margin-bottom: 24px;
 }
 .problem strong { display: block; margin-bottom: 4px; }
+.analytics-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-top: 32px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 14px;
+}
+.analytics-note[hidden] { display: none; }
+.analytics-note #analytics-text { flex: 1 1 280px; }
+.analytics-actions { display: flex; gap: 8px; }
 .features { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .feature { display: flex; gap: 10px; }
 .feature .ico {

@@ -89,6 +89,39 @@ test('without trusting a proxy, forwarded addresses are ignored', async () => {
   }
 });
 
+test('Clarity is off unless a project ID is configured', async () => {
+  const { call, stop } = await start({});
+  try {
+    assert.equal((await (await call('/api/me')).json()).clarityProjectId, null);
+    assert.doesNotMatch((await call('/')).headers.get('content-security-policy'), /clarity/);
+  } finally {
+    await stop();
+  }
+});
+
+test('a Clarity project ID is shared with the page and allowed by its CSP', async () => {
+  const { call, stop } = await start({ clarityProjectId: 'abc123xyz' });
+  try {
+    assert.equal((await (await call('/api/me')).json()).clarityProjectId, 'abc123xyz');
+    const csp = (await call('/')).headers.get('content-security-policy');
+    assert.match(csp, /script-src [^;]*https:\/\/\*\.clarity\.ms/);
+    assert.match(csp, /connect-src 'self' https:\/\/\*\.clarity\.ms https:\/\/c\.bing\.com/);
+    assert.match(csp, /img-src [^;]*https:\/\/c\.bing\.com/);
+  } finally {
+    await stop();
+  }
+});
+
+test('a malformed Clarity project ID leaves analytics off', async () => {
+  const { call, stop } = await start({ clarityProjectId: "x'; script-src *" });
+  try {
+    assert.equal((await (await call('/api/me')).json()).clarityProjectId, null);
+    assert.doesNotMatch((await call('/')).headers.get('content-security-policy'), /clarity/);
+  } finally {
+    await stop();
+  }
+});
+
 test('HTTPS deployments send HSTS and Secure session cookies', async () => {
   const { call, stop } = await start({ secureCookies: true });
   try {

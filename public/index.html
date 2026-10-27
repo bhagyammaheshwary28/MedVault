@@ -54,7 +54,7 @@
           <button type="button" class="active" data-tab="login">Sign in</button>
           <button type="button" data-tab="register">Create account</button>
         </div>
-        <form id="auth-form" novalidate>
+        <form id="auth-form" novalidate data-clarity-mask="True">
           <div class="form-error" id="auth-error" hidden></div>
           <div class="field" data-only="register" hidden>
             <label for="auth-name">Full name</label>
@@ -78,6 +78,10 @@
         </form>
       </div>
     </section>
+    <div class="analytics-note" id="analytics-note" role="region" aria-label="Usage analytics" hidden>
+      <span id="analytics-text"></span>
+      <span class="analytics-actions" id="analytics-actions"></span>
+    </div>
   </template>
 
   <!-- ===== Records ===== -->
